@@ -2,41 +2,46 @@ module Main where
 
 import System.Environment
 import Data.List
+import Data.List.Split
 import System.TimeIt
 import qualified Data.Text as Txt
+import qualified Data.Text.IO as TxtIO
+import Control.Parallel.Strategies
+import qualified Data.Set as Set
+import System.IO
 
 import Reader
 import Parser
-import Types
 
 main :: IO()
 main = do
-    [mainPath] <- getArgs
-    timeIt $ runOptimized mainPath
+    [mainPath, outputName] <- getArgs
+    timeIt $ run mainPath outputName
+    outputContent <- TxtIO.readFile outputName
+    print $ Txt.length outputContent
+    let splitted = Txt.splitOn (Txt.pack "\n") outputContent
+    Txt.length outputContent `seq` return () -- force eval
+    let output = Txt.intercalate (Txt.pack "\n") $ sort $ removeDup $ splitted
+    TxtIO.writeFile outputName output
 
-run :: FilePath -> IO()
-run path = do
-    contents <- readBundles path
-    let parsed = parse $ contents
-    let strings = map (map (map (Txt.unpack))) parsed
-    let toFile = intercalate "\n" $ sort $ concat $ concat strings
-    writeFile "test.txt" toFile
+removeDup :: Ord a => [a] -> [a]
+removeDup = Set.toList . Set.fromList
 
-runOptimized :: FilePath -> IO()
-runOptimized path = do
+run :: FilePath -> String -> IO()
+run path outputName = do
     paths <- getPaths path
-    runOptimizedImp paths
+    runImp outputName paths 0
 
-runOptimizedImp :: Paths -> IO()
-runOptimizedImp [] = return ()
-runOptimizedImp tmp = do
-    print $ stripPath $ head tmp
-    content <- readBundle $ head tmp --TODO will need to adjust to single content
-    let parsed = parse $ [content]
-    let strings = map (map (map (Txt.unpack))) parsed
-    let toFile = intercalate "\n" $ sort $ concat $ concat strings
-    appendFile "testAppend.txt" toFile
-    runOptimizedImp $ tail tmp
+runImp :: String -> [FilePath] -> Int -> IO()
+runImp _ [] _ = return ()
+runImp oName tmp count =
+    do
+        putStrLn $ (show count) ++ "\\" ++ (show $ length tmp) ++ " " ++ (stripPath $ head tmp)
+        hFlush stdout
+        content <- readBundle $ head tmp
+        let parsed = parse $ content
+        appendFile oName $ Txt.unpack parsed
+        runImp oName (tail tmp) (count + 1)
 
-headContents :: [Content] -> Content
+headContents :: [Txt.Text] -> Txt.Text
 headContents (x:xs) = x
