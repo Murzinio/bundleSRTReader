@@ -6,7 +6,6 @@ import Data.List.Split
 import System.TimeIt
 import qualified Data.Text as Txt
 import qualified Data.Text.IO as TxtIO
-import Control.Parallel.Strategies
 import qualified Data.Set as Set
 import System.IO
 
@@ -16,13 +15,22 @@ import Parser
 main :: IO()
 main = do
     [mainPath, outputName] <- getArgs
+    writeFile outputName "" -- to test outputName
+    putStrLn "Parsing bundles..."
     timeIt $ run mainPath outputName
-    outputContent <- TxtIO.readFile outputName
-    print $ Txt.length outputContent
-    let splitted = Txt.splitOn (Txt.pack "\n") outputContent
-    Txt.length outputContent `seq` return () -- force eval
-    let output = Txt.intercalate (Txt.pack "\n") $ sort $ removeDup $ splitted
-    TxtIO.writeFile outputName output
+    putStrLn "Cleaning output..."
+    cleanOut outputName
+    putStrLn "Done."
+    hFlush stdout
+
+cleanOut :: FilePath -> IO()
+cleanOut outputName =
+    do
+        outputContent <- TxtIO.readFile outputName
+        let splitted = Txt.splitOn (Txt.pack "\n") outputContent
+        Txt.length outputContent `seq` return () -- force eval
+        let output = Txt.intercalate (Txt.pack "\n") $ sort $ removeDup $ splitted
+        TxtIO.writeFile outputName output
 
 removeDup :: Ord a => [a] -> [a]
 removeDup = Set.toList . Set.fromList
