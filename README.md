@@ -12,5 +12,5 @@ Then simply run:
 inside the project folder to build with optimizations.
 
 `stack exec bundleSRTReader-exe arg1 arg2` will run the program, you need to supply CLI arguments:
-* **arg1** - Game path (without "\" at the end)
+* **arg1** - Game path (without "\\" at the end)
 * **arg2** - Output name
